@@ -19,7 +19,7 @@ def generate_launch_description():
             package='face_detection', 
             executable='face_tracking', 
             output='screen',
-            parameters=[{'imageInput': '/usb_cam_node/image_raw'},
+            parameters=[{'imageInput': '/usb_cam_node/image_raw/compressed'},
                         {'imageOutput': '/facerec/image_raw'},
                         {'displayed_Image': 0}, 
                         {'publish': 3},

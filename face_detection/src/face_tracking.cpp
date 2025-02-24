@@ -42,6 +42,7 @@
 #include <cv_bridge/cv_bridge.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "opencv2/objdetect/objdetect.hpp"
@@ -75,10 +76,11 @@ static const std::string OPENCV_WINDOW = "Image window";
 class FaceDetector : public rclcpp::Node
 {
   image_transport::ImageTransport* it_;
-  image_transport::Subscriber image_sub_;
+  // image_transport::Subscriber image_sub_;
   image_transport::Publisher image_pub_;
   rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr faceCoord_pub;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr command_sub;
+  rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr image_sub_;
 
   // required for the dynamic reconfigure server
   // dynamic_reconfigure::Server<face_detection::face_trackConfig> srv;
@@ -118,7 +120,7 @@ class FaceDetector : public rclcpp::Node
   int totalDetections;
 
   // publish subscribe variables
-  string imageInput = "/camera/image_raw";
+  string imageInput = "/camera/image_raw/compressed";
   string imageOutput = "/face_det/image_raw";
 
   // variables containing cascades
@@ -156,7 +158,7 @@ private:
   // ####################################################################
   // ############# called every time theres a new image #################
   // ####################################################################
-  void newImageCallBack(const sensor_msgs::msg::Image::ConstSharedPtr &msg)
+  void newImageCallBack(const sensor_msgs::msg::CompressedImage::ConstSharedPtr &msg)
   {
 
     if (tracking_condition == true)
@@ -179,14 +181,20 @@ private:
         return;
       }
 
+      cv::Mat img = cv_ptr->image;
+      if (img.empty())
+      {
+        RCLCPP_ERROR(this->get_logger(), "No image data");
+        return;
+      }
 
       // run only on the first frame
       if (totalFrameCounter == 0)
       {
         gettimeofday(&tinit_time, NULL);
         begin = rclcpp::Clock().now();
-        previousFrame = cv_ptr->image;
-        cvtColor(previousFrame, previousFrame, CV_BGR2GRAY);
+        previousFrame = img.clone(); // cv_ptr->image;
+        cvtColor(previousFrame, previousFrame, cv::COLOR_BGR2GRAY);
       }
 
       // ####################################################################
@@ -198,7 +206,7 @@ private:
       cv_ptr->image.convertTo(gray, -1, contrastFactor, 0);
 
       // create B&W image
-      cvtColor(gray, gray, CV_BGR2GRAY);
+      cvtColor(gray, gray, cv::COLOR_BGR2GRAY);
 
       // equalize the histogram
       if (histOnOff == 1)
@@ -474,6 +482,7 @@ private:
         // Output modified video stream
         if (publish == 1 || publish == 3)
         {
+          cv_ptr->image = img;
           image_pub_.publish(cv_ptr->toImageMsg());
         }
 
@@ -893,7 +902,8 @@ public:
     it_ = new image_transport::ImageTransport(this->shared_from_this());
 
     // Subscribing to the input images.
-    image_sub_ = it_->subscribe(imageInput, inputSkipp, &FaceDetector::newImageCallBack, this);
+    // image_sub_ = it_->subscribe(imageInput, inputSkipp, &FaceDetector::newImageCallBack, this);
+    image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(imageInput, 10, std::bind(&FaceDetector::newImageCallBack, this, std::placeholders::_1));
 
     // Publishing the output images.
     image_pub_ = it_->advertise(imageOutput, inputSkipp);
