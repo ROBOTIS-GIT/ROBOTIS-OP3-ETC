@@ -748,7 +748,7 @@ public:
     // ###############################################
 
     // image processing variables
-    imgScale = 0.625;// 1.0;
+    imgScale = 0.8; // 1.0;
     histOnOff = 0;
     blurFactor = 0;
     brightnessFactor = 0;
@@ -757,14 +757,14 @@ public:
     // cascade detector variables
     neighborsValue = 2;
     scaleValue = 1.2;
-    minSize = 40; //13;
-    maxSize = 200; //250;
+    minSize = 20; //13;
+    maxSize = 250;
     cascadeValue = 2;
     myflag = cv::CASCADE_DO_CANNY_PRUNING; //CV_HAAR_DO_CANNY_PRUNING;
 
     // tracking variables
-    trackSearchWinSize = 30; //100;
-    initialDetectionNum = 3; //4;
+    trackSearchWinSize = 50; //100;
+    initialDetectionNum = 4;
     maxNumFeatures = 15;
     maxTrackingNum = 15; //60;
 
@@ -903,7 +903,7 @@ public:
 
     // Subscribing to the input images.
     // image_sub_ = it_->subscribe(imageInput, inputSkipp, &FaceDetector::newImageCallBack, this);
-    image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(imageInput, 10, std::bind(&FaceDetector::newImageCallBack, this, std::placeholders::_1));
+    image_sub_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(imageInput, 1, std::bind(&FaceDetector::newImageCallBack, this, std::placeholders::_1));
 
     // Publishing the output images.
     image_pub_ = it_->advertise(imageOutput, inputSkipp);
